@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stencil Sizer Pro - Premium Exact Scale</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #000000;
+            --text-muted: #555555;
+            --border: #000000;
+            --px-per-cm: 37.79527559; 
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Top Controls Area */
+        .top-bar {
+            width: 100%;
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-right: 20px;
+            align-self: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-btn {
+            background-color: var(--bg-color);
+            border: 2px dashed var(--border);
+            padding: 12px 20px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: var(--bg-color);
+            border: 2px solid var(--border);
+            padding: 8px 12px;
+            width: 120px;
+        }
+
+        .input-wrapper input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            width: 100%;
+            font-size: 16px;
+            outline: none;
+            font-weight: bold;
+        }
+
+        .input-wrapper span {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
+        .lock-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+        }
+
+        .orientation-toggle {
+            display: flex;
+            background: var(--bg-color);
+            border: 2px solid var(--border);
+            overflow: hidden;
+        }
+
+        .orientation-toggle button {
+            padding: 10px 15px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .orientation-toggle button.active {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+
+        .btn {
+            background: var(--text-main);
+            color: var(--bg-color);
+            border: 2px solid var(--border);
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+            height: 43px;
+        }
+
+        .btn:hover {
+            background: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .btn-outline {
+            background: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+
+        /* Bottom Preview Area */
+        .preview-wrapper {
+            flex: 1;
+            padding: 40px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        .stats-header {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: var(--text-main);
+            text-align: center;
+            font-weight: bold;
+            background: white;
+            border: 2px solid black;
+            padding: 10px 20px;
+        }
+
+        #print-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            transform-origin: top center;
+        }
+
+        .a4-page {
+            position: relative;
+            overflow: hidden;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .a4-page img {
+            position: absolute;
+            object-fit: fill; 
+            border: 1px dashed rgba(0,0,0,0.15); /* Faint border to show the true ink edge */
+            box-sizing: border-box;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border: 4px solid black;
+            max-width: 500px;
+            text-align: center;
+        }
+        .modal-content h2 { margin-bottom: 15px; text-transform: uppercase; }
+        .modal-content p { margin-bottom: 10px; font-size: 16px; line-height: 1.5; }
+        .modal-content ul { text-align: left; margin: 15px auto; display: inline-block; font-weight: bold; }
+        .modal-content li { margin-bottom: 8px; }
+
+        /* Print Specific Styles */
+        @media print {
+            @page {
+                size: auto; 
+                margin: 0mm; 
+            }
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+            .top-bar, .stats-header, .modal-overlay {
+                display: none !important; 
+            }
+            .preview-wrapper {
+                padding: 0 !important;
+                background: transparent !important;
+            }
+            #print-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                gap: 0 !important;
+                transform: none !important; 
+                display: block;
+                width: 100% !important;
+            }
+            .a4-page {
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                page-break-after: always; 
+                width: var(--print-w) !important;
+                height: var(--print-h) !important;
+            }
+            .a4-page img {
+                border: none !important; 
+                width: var(--print-img-w) !important;
+                height: var(--print-img-h) !important;
+                left: var(--print-off-x) !important;
+                top: var(--print-off-y) !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="brand">Stencil Sizer Pro</div>
+        
+        <div class="control-group">
+            <label>1. Upload Design</label>
+            <label for="image-upload" class="file-upload-btn" id="upload-label">
+                Select Image
+            </label>
+            <input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp">
+        </div>
+
+        <div class="control-group">
+            <label>2. Exact Ink Size</label>
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <input type="number" id="width-input" placeholder="W" step="0.1">
+                    <span>cm</span>
+                </div>
+                <button class="lock-btn" id="lock-btn" title="Toggle Aspect Ratio">🔓</button>
+                <div class="input-wrapper">
+                    <input type="number" id="height-input" placeholder="H" step="0.1">
+                    <span>cm</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>3. Paper Setup</label>
+            <div class="orientation-toggle">
+                <button id="btn-portrait" class="active" onclick="setOrientation('portrait')">Portrait</button>
+                <button id="btn-landscape" onclick="setOrientation('landscape')">Landscape</button>
+            </div>
+        </div>
+
+        <button class="btn" onclick="generatePreview()">Generate Preview</button>
+        <button class="btn btn-outline" onclick="showPrintModal()">Save as PDF / Print</button>
+    </div>
+
+    <div class="preview-wrapper">
+        <div class="stats-header" id="stats-header">
+            Upload an image. (Auto-Crop will remove empty white space).
+        </div>
+        <div id="print-container"></div>
+    </div>
+
+    <!-- Print / Save Modal -->
+    <div class="modal-overlay" id="print-modal">
+        <div class="modal-content">
+            <h2>Ready to Save or Print?</h2>
+            <p>To ensure your stencil prints exactly at the measurements you typed, you <strong>MUST</strong> check these settings in the next window:</p>
+            <ul>
+                <li>Destination: Save as PDF (to save) or Select Printer</li>
+                <li>Paper Size: A4</li>
+                <li>Scale: 100% (or "Default", do NOT use "Fit to Page")</li>
+                <li>Margins: None</li>
+            </ul>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-outline" onclick="closePrintModal()">Cancel</button>
+                <button class="btn" onclick="executePrint()">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedImage = new Image();
+        let imageSrc = null;
+        let aspectRatio = 1;
+        let isRatioLocked = false; 
+        let isPortrait = true;
+
+        const A4_PORTRAIT_W = 21.0;
+        const A4_PORTRAIT_H = 29.7;
+        const PX_PER_CM = 37.79527559;
+
+        const uploadInput = document.getElementById('image-upload');
+        const uploadLabel = document.getElementById('upload-label');
+        const widthInput = document.getElementById('width-input');
+        const heightInput = document.getElementById('height-input');
+        const lockBtn = document.getElementById('lock-btn');
+        const printContainer = document.getElementById('print-container');
+        const statsHeader = document.getElementById('stats-header');
+        const printModal = document.getElementById('print-modal');
+
+        // Premium Feature: Auto-Crop White Space
+        function trimCanvas(image) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            let top = null, bottom = null, left = null, right = null;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    // Check if pixel is not transparent and not purely white
+                    if (data[i+3] > 10 && (data[i] < 250 || data[i+1] < 250 || data[i+2] < 250)) {
+                        if (top === null) top = y;
+                        bottom = y;
+                        if (left === null || x < left) left = x;
+                        if (right === null || x > right) right = x;
+                    }
+                }
+            }
+
+            if (top === null) return image.src; // If blank, return original
+
+            const trimWidth = right - left + 1;
+            const trimHeight = bottom - top + 1;
+
+            const trimmedCanvas = document.createElement('canvas');
+            trimmedCanvas.width = trimWidth;
+            trimmedCanvas.height = trimHeight;
+            trimmedCanvas.getContext('2d').drawImage(
+                canvas, left, top, trimWidth, trimHeight, 0, 0, trimWidth, trimHeight
+            );
+
+            return trimmedCanvas.toDataURL();
+        }
+
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadLabel.innerText = "Processing...";
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const tempImage = new Image();
+                tempImage.onload = function() {
+                    // Auto crop the empty space!
+                    imageSrc = trimCanvas(tempImage);
+                    uploadedImage.src = imageSrc;
+                    
+                    uploadedImage.onload = function() {
+                        uploadLabel.innerText = file.name.length > 15 ? file.name.substring(0, 15) + "..." : file.name;
+                        aspectRatio = uploadedImage.width / uploadedImage.height;
+                        
+                        // Set width to 10 automatically and calc height
+                        widthInput.value = 10;
+                        heightInput.value = (10 / aspectRatio).toFixed(2);
+                        
+                        generatePreview();
+                    }
+                };
+                tempImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        lockBtn.addEventListener('click', () => {
+            isRatioLocked = !isRatioLocked;
+            lockBtn.innerText = isRatioLocked ? "🔒" : "🔓";
+            if (isRatioLocked && widthInput.value) {
+                heightInput.value = (parseFloat(widthInput.value) / aspectRatio).toFixed(2);
+                generatePreview();
+            }
+        });
+
+        widthInput.addEventListener('input', () => {
+            if (isRatioLocked && widthInput.value) {
+                heightInput.value = (parseFloat(widthInput.value) / aspectRatio).toFixed(2);
+            }
+        });
+
+        heightInput.addEventListener('input', () => {
+            if (isRatioLocked && heightInput.value) {
+                widthInput.value = (parseFloat(heightInput.value) * aspectRatio).toFixed(2);
+            }
+        });
+
+        function setOrientation(mode) {
+            isPortrait = (mode === 'portrait');
+            document.getElementById('btn-portrait').classList.toggle('active', isPortrait);
+            document.getElementById('btn-landscape').classList.toggle('active', !isPortrait);
+            if (imageSrc) generatePreview();
+        }
+
+        function generatePreview() {
+            if (!imageSrc) {
+                alert("Please upload an image first.");
+                return;
+            }
+
+            printContainer.innerHTML = ''; 
+
+            const targetW = parseFloat(widthInput.value);
+            const targetH = parseFloat(heightInput.value);
+
+            if (!targetW || !targetH || targetW <= 0 || targetH <= 0) {
+                alert("Please enter valid dimensions.");
+                return;
+            }
+
+            const pageW = isPortrait ? A4_PORTRAIT_W : A4_PORTRAIT_H;
+            const pageH = isPortrait ? A4_PORTRAIT_H : A4_PORTRAIT_W;
+
+            const cols = Math.ceil(targetW / pageW);
+            const rows = Math.ceil(targetH / pageH);
+            const totalPages = cols * rows;
+
+            statsHeader.innerHTML = `True Ink Size: ${targetW}cm x ${targetH}cm | Total A4 Pages: ${totalPages}`;
+
+            const maxPreviewWidth = window.innerWidth - 100; 
+            const totalWidthPx = cols * pageW * PX_PER_CM;
+            if (totalWidthPx > maxPreviewWidth) {
+                const scale = maxPreviewWidth / totalWidthPx;
+                printContainer.style.transform = `scale(${scale})`;
+            } else {
+                printContainer.style.transform = `scale(1)`;
+            }
+
+            printContainer.style.width = `${cols * pageW * PX_PER_CM + (cols*20)}px`;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'a4-page';
+                    
+                    pageDiv.style.width = `${pageW * PX_PER_CM}px`;
+                    pageDiv.style.height = `${pageH * PX_PER_CM}px`;
+
+                    pageDiv.style.setProperty('--print-w', `${pageW}cm`);
+                    pageDiv.style.setProperty('--print-h', `${pageH}cm`);
+
+                    const imgEl = document.createElement('img');
+                    imgEl.src = imageSrc;
+                    
+                    imgEl.style.width = `${targetW * PX_PER_CM}px`;
+                    imgEl.style.height = `${targetH * PX_PER_CM}px`;
+                    imgEl.style.left = `${-c * pageW * PX_PER_CM}px`;
+                    imgEl.style.top = `${-r * pageH * PX_PER_CM}px`;
+
+                    imgEl.style.setProperty('--print-img-w', `${targetW}cm`);
+                    imgEl.style.setProperty('--print-img-h', `${targetH}cm`);
+                    imgEl.style.setProperty('--print-off-x', `-${c * pageW}cm`);
+                    imgEl.style.setProperty('--print-off-y', `-${r * pageH}cm`);
+
+                    pageDiv.appendChild(imgEl);
+                    printContainer.appendChild(pageDiv);
+                }
+            }
+        }
+
+        function showPrintModal() {
+            if (!imageSrc) {
+                alert("Upload an image and generate the preview first.");
+                return;
+            }
+            printModal.style.display = 'flex';
+        }
+
+        function closePrintModal() {
+            printModal.style.display = 'none';
+        }
+
+        function executePrint() {
+            printModal.style.display = 'none';
+            // Slight timeout to let the modal vanish before the OS locks the screen for printing
+            setTimeout(() => {
+                window.print();
+            }, 300);
+        }
+    </script>
+</body>
+</html>
