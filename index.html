@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stencil Sizer Pro - Free Scale & Ruler</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #000000;
+            --text-muted: #555555;
+            --border: #000000;
+            --px-per-cm: 37.79527559; 
+            
+            /* Dynamic Image Transform Variables */
+            --img-scale-x: 1;
+            --img-scale-y: 1;
+            --img-move-x: 0cm;
+            --img-move-y: 0cm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .top-bar {
+            width: 100%;
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--border);
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            align-self: center;
+            margin-right: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        input[type="file"] { display: none; }
+
+        .file-upload-btn {
+            background-color: #fff;
+            border: 2px dashed var(--border);
+            padding: 8px 15px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload-btn:hover { background-color: #e2e8f0; }
+
+        .input-row { display: flex; gap: 10px; align-items: center; }
+
+        .input-wrapper {
+            display: flex; align-items: center;
+            background: #fff; border: 2px solid var(--border);
+            padding: 5px 8px; width: 90px;
+        }
+
+        .input-wrapper input {
+            background: transparent; border: none;
+            color: var(--text-main); width: 100%;
+            font-size: 14px; outline: none; font-weight: bold;
+            text-align: center;
+        }
+
+        .input-wrapper span {
+            color: var(--text-muted); font-size: 12px; margin-left: 5px; font-weight: bold;
+        }
+
+        .btn {
+            background: var(--text-main); color: #fff;
+            border: 2px solid var(--border); padding: 10px 15px;
+            font-size: 13px; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; transition: 0.2s;
+        }
+
+        .btn:hover { background: #333; }
+        .btn-outline { background: #fff; color: var(--text-main); }
+        .btn-outline:hover { background: #f0f0f0; }
+        .btn-action { background: #d4af37; color: black; border-color: black; }
+        .btn-action:hover { background: #b8972e; }
+
+        /* Sliders Panel */
+        .sliders-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .slider-item input[type="range"] {
+            width: 100%;
+            margin-top: 3px;
+        }
+
+        /* Preview Area */
+        .preview-wrapper {
+            flex: 1; padding: 20px; background-color: #e5e7eb;
+            display: flex; flex-direction: column; align-items: flex-start;
+            overflow: auto;
+        }
+
+        .stats-header {
+            margin-bottom: 20px; font-size: 15px; color: var(--text-main);
+            text-align: center; font-weight: bold; background: white;
+            border: 2px solid black; padding: 10px 20px; max-width: 600px;
+            align-self: center;
+        }
+
+        #print-container {
+            display: flex; flex-wrap: wrap; gap: 10px;
+            transform-origin: top left; padding-bottom: 50px; margin: 0 auto;
+        }
+
+        /* Generated Pages */
+        .a4-page {
+            position: relative; overflow: hidden;
+            background: white; border: 1px solid #ccc;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* The canvas that splits offsets across pages */
+        .image-canvas {
+            position: absolute;
+            /* Dimensions set by JS */
+        }
+
+        /* The actual image controlled by sliders */
+        .stencil-img {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: fill; 
+            transform: translate(var(--img-move-x), var(--img-move-y)) scale(var(--img-scale-x), var(--img-scale-y));
+            transform-origin: center center;
+        }
+
+        /* Ruler System */
+        .ruler-canvas {
+            position: absolute; pointer-events: none; z-index: 30;
+        }
+        .ruler-bg-top { position: absolute; top:0; left:0; width: 100%; height: 25px; background: rgba(255,255,255,0.9); border-bottom: 2px solid black; }
+        .ruler-bg-left { position: absolute; top:0; left:0; width: 25px; height: 100%; background: rgba(255,255,255,0.9); border-right: 2px solid black; }
+
+        .ruler-tick-x { position: absolute; top: 15px; width: 2px; height: 10px; background: black; transform: translateX(-50%); }
+        .ruler-num-x { position: absolute; top: 2px; font-size: 11px; font-weight: 900; transform: translateX(-50%); color: black; }
+
+        .ruler-tick-y { position: absolute; left: 15px; width: 10px; height: 2px; background: black; transform: translateY(-50%); }
+        .ruler-num-y { position: absolute; left: 2px; font-size: 11px; font-weight: 900; transform: translateY(-50%); color: black; }
+
+        /* Print Settings */
+        @media print {
+            @page { size: auto; margin: 0mm; }
+            body { background: white; margin: 0; padding: 0; }
+            .top-bar, .stats-header { display: none !important; }
+            .preview-wrapper { padding: 0 !important; background: transparent !important; overflow: visible !important;}
+            #print-container {
+                position: absolute; left: 0; top: 0; gap: 0 !important;
+                transform: none !important; display: block; width: 100% !important; padding: 0 !important;
+            }
+            .a4-page {
+                box-shadow: none !important; border: none !important; margin: 0 !important;
+                page-break-after: always; width: var(--print-w) !important; height: var(--print-h) !important;
+            }
+            .image-canvas, .ruler-canvas {
+                width: var(--print-img-w) !important; height: var(--print-img-h) !important;
+                left: var(--print-off-x) !important; top: var(--print-off-y) !important;
+            }
+            
+            /* Apply slider math to print */
+            .stencil-img {
+                transform: translate(var(--img-move-x), var(--img-move-y)) scale(var(--img-scale-x), var(--img-scale-y)) !important;
+            }
+
+            /* Print exact ruler marks in CM */
+            .ruler-bg-top, .ruler-bg-left { background: transparent !important; }
+            .ruler-tick-x, .ruler-num-x { left: var(--print-val) !important; }
+            .ruler-tick-y, .ruler-num-y { top: var(--print-val) !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="brand">Stencil Sizer Pro</div>
+        
+        <div class="control-group">
+            <label>1. Upload Design</label>
+            <label for="image-upload" class="file-upload-btn" id="upload-label">Select Image</label>
+            <input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp">
+        </div>
+
+        <div class="control-group">
+            <label>2. Ruler Bounding Box</label>
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <input type="number" id="width-input" placeholder="W" step="0.1" value="20">
+                    <span>cm</span>
+                </div>
+                <div class="input-wrapper">
+                    <input type="number" id="height-input" placeholder="H" step="0.1" value="20">
+                    <span>cm</span>
+                </div>
+                <button class="btn btn-action" onclick="generatePreview()">Generate</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>3. Free Scale & Distort</label>
+            <div class="sliders-grid">
+                <div class="slider-item">
+                    Stretch Width ↔ (<span id="val-sx">100</span>%)
+                    <input type="range" id="scale-x" min="10" max="400" value="100" oninput="updateDistort()">
+                </div>
+                <div class="slider-item">
+                    Stretch Height ↕ (<span id="val-sy">100</span>%)
+                    <input type="range" id="scale-y" min="10" max="400" value="100" oninput="updateDistort()">
+                </div>
+                <div class="slider-item">
+                    Move Left/Right ↔ (<span id="val-mx">0</span>cm)
+                    <input type="range" id="move-x" min="-50" max="50" value="0" step="0.5" oninput="updateDistort()">
+                </div>
+                <div class="slider-item">
+                    Move Up/Down ↕ (<span id="val-my">0</span>cm)
+                    <input type="range" id="move-y" min="-50" max="50" value="0" step="0.5" oninput="updateDistort()">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group" style="flex-direction: row; align-items: center; justify-content: center; gap: 10px;">
+            <button class="btn btn-outline" id="btn-zoom" onclick="toggleZoom()">🔍 View: Fit Screen</button>
+            <button class="btn" onclick="executePrint()">Print PDF</button>
+        </div>
+    </div>
+
+    <div class="preview-wrapper">
+        <div class="stats-header" id="stats-header">
+            Upload an image and hit Generate.<br>
+            <span style="font-size: 12px; font-weight: normal; color: red;">Use the sliders above to stretch and align your image perfectly to the rulers.</span>
+        </div>
+        <div id="print-container"></div>
+    </div>
+
+    <script>
+        let uploadedImage = new Image();
+        let imageSrc = null;
+        let isZoomed = false; 
+
+        const A4_PORTRAIT_W = 21.0;
+        const A4_PORTRAIT_H = 29.7;
+        const PX_PER_CM = 37.79527559;
+
+        const uploadInput = document.getElementById('image-upload');
+        const uploadLabel = document.getElementById('upload-label');
+        const widthInput = document.getElementById('width-input');
+        const heightInput = document.getElementById('height-input');
+        const printContainer = document.getElementById('print-container');
+        const statsHeader = document.getElementById('stats-header');
+        const btnZoom = document.getElementById('btn-zoom');
+
+        // Simple transparent padding cropper
+        function trimCanvas(image) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = image.width; canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let top = null, bottom = null, left = null, right = null;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    if (data[i+3] > 10 && (data[i] < 250 || data[i+1] < 250 || data[i+2] < 250)) {
+                        if (top === null) top = y;
+                        bottom = y;
+                        if (left === null || x < left) left = x;
+                        if (right === null || x > right) right = x;
+                    }
+                }
+            }
+            if (top === null) return image.src; 
+            const trimWidth = right - left + 1;
+            const trimHeight = bottom - top + 1;
+            const trimmedCanvas = document.createElement('canvas');
+            trimmedCanvas.width = trimWidth; trimmedCanvas.height = trimHeight;
+            trimmedCanvas.getContext('2d').drawImage(canvas, left, top, trimWidth, trimHeight, 0, 0, trimWidth, trimHeight);
+            return trimmedCanvas.toDataURL();
+        }
+
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            uploadLabel.innerText = "Processing...";
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const tempImage = new Image();
+                tempImage.onload = function() {
+                    imageSrc = trimCanvas(tempImage);
+                    uploadedImage.src = imageSrc;
+                    uploadedImage.onload = function() {
+                        uploadLabel.innerText = file.name.length > 15 ? file.name.substring(0, 15) + "..." : file.name;
+                        
+                        // Reset Distort
+                        document.getElementById('scale-x').value = 100;
+                        document.getElementById('scale-y').value = 100;
+                        document.getElementById('move-x').value = 0;
+                        document.getElementById('move-y').value = 0;
+                        updateDistort();
+
+                        generatePreview();
+                    }
+                };
+                tempImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Sliders Update Function
+        function updateDistort() {
+            const sx = document.getElementById('scale-x').value;
+            const sy = document.getElementById('scale-y').value;
+            const mx = document.getElementById('move-x').value;
+            const my = document.getElementById('move-y').value;
+
+            // Update UI Numbers
+            document.getElementById('val-sx').innerText = sx;
+            document.getElementById('val-sy').innerText = sy;
+            document.getElementById('val-mx').innerText = mx;
+            document.getElementById('val-my').innerText = my;
+
+            // Update CSS Variables to stretch/move image in real-time
+            document.documentElement.style.setProperty('--img-scale-x', sx / 100);
+            document.documentElement.style.setProperty('--img-scale-y', sy / 100);
+            document.documentElement.style.setProperty('--img-move-x', mx + 'cm');
+            document.documentElement.style.setProperty('--img-move-y', my + 'cm');
+        }
+
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            btnZoom.innerText = isZoomed ? "🔍 View: 100% Real Size" : "🔍 View: Fit Screen";
+            generatePreview();
+        }
+
+        function generatePreview() {
+            if (!imageSrc) { alert("Please upload an image first."); return; }
+            printContainer.innerHTML = ''; 
+
+            const targetW = parseFloat(widthInput.value);
+            const targetH = parseFloat(heightInput.value);
+            if (!targetW || !targetH || targetW <= 0 || targetH <= 0) { alert("Please enter valid dimensions."); return; }
+
+            const pageW = A4_PORTRAIT_W;
+            const pageH = A4_PORTRAIT_H;
+
+            const cols = Math.ceil(targetW / pageW);
+            const rows = Math.ceil(targetH / pageH);
+
+            statsHeader.innerHTML = `Ruler Area: ${targetW}cm x ${targetH}cm | Requires: ${cols * rows} A4 Pages`;
+
+            const totalWidthPx = cols * pageW * PX_PER_CM;
+            
+            // Screen Fit Math
+            if (!isZoomed) {
+                const maxPreviewWidth = window.innerWidth - 40; 
+                if (totalWidthPx > maxPreviewWidth) {
+                    const scale = maxPreviewWidth / totalWidthPx;
+                    printContainer.style.transform = `scale(${scale})`;
+                } else {
+                    printContainer.style.transform = `scale(1)`;
+                }
+            } else {
+                printContainer.style.transform = `scale(1)`;
+            }
+
+            printContainer.style.width = `${totalWidthPx + (cols*10)}px`;
+
+            // Build Ruler Elements
+            let topRulerHTML = '<div class="ruler-bg-top"></div>';
+            let leftRulerHTML = '<div class="ruler-bg-left"></div>';
+
+            for (let i = 0; i <= Math.ceil(targetW); i++) {
+                topRulerHTML += `<div class="ruler-tick-x" style="left: ${i * PX_PER_CM}px; --print-val: ${i}cm;"></div>`;
+                topRulerHTML += `<div class="ruler-num-x" style="left: ${i * PX_PER_CM}px; --print-val: ${i}cm;">${i}</div>`;
+            }
+            for (let i = 0; i <= Math.ceil(targetH); i++) {
+                leftRulerHTML += `<div class="ruler-tick-y" style="top: ${i * PX_PER_CM}px; --print-val: ${i}cm;"></div>`;
+                leftRulerHTML += `<div class="ruler-num-y" style="top: ${i * PX_PER_CM}px; --print-val: ${i}cm;">${i}</div>`;
+            }
+
+            // Generate A4 Pages
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'a4-page';
+                    
+                    pageDiv.style.width = `${pageW * PX_PER_CM}px`;
+                    pageDiv.style.height = `${pageH * PX_PER_CM}px`;
+                    pageDiv.style.setProperty('--print-w', `${pageW}cm`);
+                    pageDiv.style.setProperty('--print-h', `${pageH}cm`);
+
+                    // Image Canvas Container
+                    const imgCanvas = document.createElement('div');
+                    imgCanvas.className = 'image-canvas';
+                    imgCanvas.style.width = `${targetW * PX_PER_CM}px`;
+                    imgCanvas.style.height = `${targetH * PX_PER_CM}px`;
+                    imgCanvas.style.left = `${-c * pageW * PX_PER_CM}px`;
+                    imgCanvas.style.top = `${-r * pageH * PX_PER_CM}px`;
+                    imgCanvas.style.setProperty('--print-img-w', `${targetW}cm`);
+                    imgCanvas.style.setProperty('--print-img-h', `${targetH}cm`);
+                    imgCanvas.style.setProperty('--print-off-x', `-${c * pageW}cm`);
+                    imgCanvas.style.setProperty('--print-off-y', `-${r * pageH}cm`);
+
+                    const imgEl = document.createElement('img');
+                    imgEl.src = imageSrc;
+                    imgEl.className = 'stencil-img';
+
+                    imgCanvas.appendChild(imgEl);
+
+                    // Ruler Canvas Container
+                    const rulerCanvas = document.createElement('div');
+                    rulerCanvas.className = 'ruler-canvas';
+                    rulerCanvas.style.width = `${targetW * PX_PER_CM}px`;
+                    rulerCanvas.style.height = `${targetH * PX_PER_CM}px`;
+                    rulerCanvas.style.left = `${-c * pageW * PX_PER_CM}px`;
+                    rulerCanvas.style.top = `${-r * pageH * PX_PER_CM}px`;
+                    rulerCanvas.style.setProperty('--print-img-w', `${targetW}cm`);
+                    rulerCanvas.style.setProperty('--print-img-h', `${targetH}cm`);
+                    rulerCanvas.style.setProperty('--print-off-x', `-${c * pageW}cm`);
+                    rulerCanvas.style.setProperty('--print-off-y', `-${r * pageH}cm`);
+                    
+                    rulerCanvas.innerHTML = topRulerHTML + leftRulerHTML;
+
+                    pageDiv.appendChild(imgCanvas);
+                    pageDiv.appendChild(rulerCanvas);
+                    printContainer.appendChild(pageDiv);
+                }
+            }
+        }
+
+        function executePrint() {
+            if (!imageSrc) { alert("Generate preview first."); return; }
+            alert("CRITICAL SETTINGS:\n\n1. Scale: 100% (or Default)\n2. Margins: NONE");
+            setTimeout(() => { window.print(); }, 500);
+        }
+    </script>
+</body>
+</html>
