@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stencil Sizer Pro - Classic A4 Edition</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #000000;
+            --text-muted: #555555;
+            --border: #000000;
+            --accent: #bb86fc;
+            --px-per-cm: 37.79527559; 
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Top Controls Area */
+        .top-bar {
+            width: 100%;
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-right: 20px;
+            align-self: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-btn {
+            background-color: var(--bg-color);
+            border: 2px dashed var(--border);
+            padding: 12px 20px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: var(--bg-color);
+            border: 2px solid var(--border);
+            padding: 8px 12px;
+            width: 120px;
+        }
+
+        .input-wrapper input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            width: 100%;
+            font-size: 16px;
+            outline: none;
+            font-weight: bold;
+        }
+
+        .input-wrapper span {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
+        .lock-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+        }
+
+        .orientation-toggle {
+            display: flex;
+            background: var(--bg-color);
+            border: 2px solid var(--border);
+            overflow: hidden;
+        }
+
+        .orientation-toggle button {
+            padding: 10px 15px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .orientation-toggle button.active {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+
+        .btn {
+            background: var(--text-main);
+            color: var(--bg-color);
+            border: 2px solid var(--border);
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+            height: 43px;
+        }
+
+        .btn:hover {
+            background: #333333;
+            color: #ffffff !important;
+        }
+
+        /* Bottom Preview Area */
+        .preview-wrapper {
+            flex: 1;
+            padding: 40px 20px 120px 20px; /* Extra padding for bottom panel */
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: auto; 
+            width: 100%;
+            touch-action: pan-x pan-y; 
+        }
+
+        .stats-header {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: var(--text-main);
+            text-align: center;
+            font-weight: bold;
+            background: white;
+            border: 2px solid black;
+            padding: 10px 20px;
+            z-index: 5;
+        }
+
+        .warning-tip {
+            color: #d93025;
+            font-weight: bold;
+            font-size: 14px;
+            display: block;
+            margin-top: 5px;
+        }
+
+        #scale-wrapper {
+            position: relative;
+            margin: 0 auto;
+        }
+
+        #print-container {
+            position: absolute;
+            top: 0; left: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 15px;
+            transform-origin: top left;
+        }
+
+        .a4-page {
+            position: relative;
+            overflow: hidden;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            pointer-events: none; 
+        }
+
+        .a4-page img {
+            position: absolute;
+            object-fit: fill; 
+            box-sizing: border-box;
+            pointer-events: none; 
+        }
+
+        /* Interactive Bounding Box & Handles */
+        #stencil-overlay {
+            position: absolute;
+            border: 2px dashed #bb86fc;
+            background: rgba(187, 134, 252, 0.05);
+            pointer-events: auto; 
+            touch-action: none; 
+            z-index: 50;
+            cursor: grab;
+            display: none;
+        }
+        #stencil-overlay:active {
+            cursor: grabbing;
+            background: rgba(187, 134, 252, 0.15);
+        }
+
+        .handle {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            background: #ffffff;
+            border: 3px solid #bb86fc;
+            border-radius: 50%;
+            pointer-events: auto; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            z-index: 51;
+        }
+        .handle.e { top: 50%; right: -14px; transform: translateY(-50%); cursor: ew-resize; }
+        .handle.s { bottom: -14px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .handle.se { bottom: -14px; right: -14px; cursor: nwse-resize; }
+
+        /* Rulers */
+        .page-ruler-top { position: absolute; top: 0; left: 0; right: 0; height: 20px; background: #e9e9e9; border-bottom: 1px solid #aaa; z-index: 10; pointer-events: none; }
+        .page-ruler-left { position: absolute; top: 0; left: 0; bottom: 0; width: 20px; background: #e9e9e9; border-right: 1px solid #aaa; z-index: 10; pointer-events: none; }
+        .tick-x, .tick-y { position: absolute; font-size: 9px; color: #333; font-weight: bold; }
+        .tick-x { top: 2px; transform: translateX(-50%); }
+        .tick-x::after { content: ''; position: absolute; bottom: -10px; left: 50%; width: 1px; height: 4px; background: #666; }
+        .tick-y { left: 2px; transform: translateY(-50%); }
+        .tick-y::after { content: ''; position: absolute; right: -13px; top: 50%; height: 1px; width: 4px; background: #666; }
+
+        /* --- ZOOM & NUDGE PANEL --- */
+        .zoom-panel {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e1e1e;
+            padding: 10px 15px;
+            border-radius: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            z-index: 100;
+            border: 1px solid #333;
+            width: 95%;
+            max-width: 500px;
+        }
+        
+        .nudge-group {
+            display: flex;
+            gap: 6px;
+        }
+        .nudge-group button {
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        .nudge-group button:active { background: var(--accent); color: #000; }
+        
+        .divider { width: 1px; height: 20px; background: #555; }
+        
+        .zoom-panel button { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; }
+        .zoom-panel input[type="range"] { width: 80px; accent-color: var(--accent); }
+        
+        #fit-all-btn { 
+            background: var(--accent); color: #000; border: none; 
+            padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; 
+        }
+
+        /* --- BULLETPROOF PRINT STYLES --- */
+        @media print {
+            @page { margin: 0 !important; }
+            
+            body, html { 
+                background: white !important; 
+                margin: 0 !important; padding: 0 !important; 
+                width: 100% !important; height: 100% !important;
+            }
+            
+            .top-bar, .stats-header, #stencil-overlay, .zoom-panel { display: none !important; }
+            
+            .preview-wrapper { 
+                padding: 0 !important; background: transparent !important; 
+                overflow: visible !important; display: block !important; 
+                width: 100% !important; height: 100% !important;
+            }
+            
+            #scale-wrapper { width: 100% !important; height: 100% !important; margin: 0 !important; transform: none !important; }
+            
+            #print-container {
+                position: relative !important; left: 0 !important; top: 0 !important;
+                gap: 0 !important; transform: none !important; 
+                display: block !important; width: 100% !important; height: 100% !important;
+            }
+            
+            /* FORCES iOS TO FILL THE ENTIRE PAGE IGNORING CENTIMETERS */
+            .a4-page {
+                box-shadow: none !important; border: none !important; margin: 0 !important;
+                page-break-after: always !important; break-after: page !important;
+                width: 100vw !important; height: 100vh !important;
+                max-width: 100% !important; max-height: 100% !important;
+                overflow: hidden !important; box-sizing: border-box !important;
+            }
+            
+            .a4-page img {
+                width: var(--print-img-w-pct) !important; 
+                height: var(--print-img-h-pct) !important;
+                left: var(--print-off-x-pct) !important; 
+                top: var(--print-off-y-pct) !important;
+                position: absolute !important;
+                max-width: none !important; max-height: none !important;
+            }
+            
+            .page-ruler-top, .page-ruler-left { display: none !important; }
+        }
+    </style>
+    <style id="print-orientation-style"></style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="brand">Stencil Sizer Pro</div>
+        
+        <div class="control-group">
+            <label>1. Upload Design</label>
+            <label for="image-upload" class="file-upload-btn" id="upload-label">Select Image</label>
+            <input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp">
+        </div>
+
+        <div class="control-group">
+            <label>2. Exact Ink Size</label>
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <input type="number" id="width-input" placeholder="W" step="0.1">
+                    <span>cm</span>
+                </div>
+                <button class="lock-btn" id="lock-btn" title="Toggle Aspect Ratio">🔓</button>
+                <div class="input-wrapper">
+                    <input type="number" id="height-input" placeholder="H" step="0.1">
+                    <span>cm</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>3. Paper Setup</label>
+            <div class="orientation-toggle">
+                <button id="btn-portrait" class="active" onclick="setOrientation('portrait')">Portrait</button>
+                <button id="btn-landscape" onclick="setOrientation('landscape')">Landscape</button>
+            </div>
+        </div>
+
+        <button class="btn" style="background: white; color: black;" onclick="executePrint()">Print Stencil</button>
+    </div>
+
+    <!-- Workspace -->
+    <div class="preview-wrapper" id="preview-wrapper">
+        <div class="stats-header" id="stats-header">
+            Upload an image to start.
+        </div>
+        
+        <div id="scale-wrapper">
+            <div id="print-container"></div>
+        </div>
+    </div>
+
+    <!-- Zoom & Precision Nudge Panel -->
+    <div class="zoom-panel">
+        <div class="nudge-group">
+            <button type="button" onclick="nudgeImage('left')" title="Nudge Left">◀</button>
+            <button type="button" onclick="nudgeImage('right')" title="Nudge Right">▶</button>
+            <button type="button" onclick="nudgeImage('up')" title="Nudge Up">▲</button>
+            <button type="button" onclick="nudgeImage('down')" title="Nudge Down">▼</button>
+        </div>
+        <div class="divider"></div>
+        <button type="button" onclick="adjustZoom(-0.1)">➖</button>
+        <input type="range" id="zoom-slider" min="0.1" max="2.5" step="0.01" value="1">
+        <button type="button" onclick="adjustZoom(0.1)">➕</button>
+        <button type="button" id="fit-all-btn" onclick="fitAllPages()">Fit All</button>
+    </div>
+
+    <script>
+        let uploadedImage = new Image();
+        let imageSrc = null;
+        let aspectRatio = 1;
+        let isRatioLocked = false; 
+        let isPortrait = true;
+
+        const A4_PORTRAIT_W = 21.0;
+        const A4_PORTRAIT_H = 29.7;
+        const PX_PER_CM = 37.79527559;
+
+        let offsetX_cm = 0;
+        let offsetY_cm = 0;
+        let stageScale = null; 
+
+        const pointers = new Map();
+        let gestureStart = null;
+        let activeHandle = null; 
+
+        const uploadInput = document.getElementById('image-upload');
+        const uploadLabel = document.getElementById('upload-label');
+        const widthInput = document.getElementById('width-input');
+        const heightInput = document.getElementById('height-input');
+        const lockBtn = document.getElementById('lock-btn');
+        const scaleWrapper = document.getElementById('scale-wrapper');
+        const printContainer = document.getElementById('print-container');
+        const statsHeader = document.getElementById('stats-header');
+        const printStyleBlock = document.getElementById('print-orientation-style');
+        const zoomSlider = document.getElementById('zoom-slider');
+
+        setOrientation('portrait');
+
+        function trimCanvas(image) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            let top = null, bottom = null, left = null, right = null;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    if (data[i+3] > 10 && (data[i] < 250 || data[i+1] < 250 || data[i+2] < 250)) {
+                        if (top === null) top = y;
+                        bottom = y;
+                        if (left === null || x < left) left = x;
+                        if (right === null || x > right) right = x;
+                    }
+                }
+            }
+            if (top === null) return image.src; 
+
+            const trimWidth = right - left + 1;
+            const trimHeight = bottom - top + 1;
+
+            const trimmedCanvas = document.createElement('canvas');
+            trimmedCanvas.width = trimWidth;
+            trimmedCanvas.height = trimHeight;
+            trimmedCanvas.getContext('2d').drawImage(
+                canvas, left, top, trimWidth, trimHeight, 0, 0, trimWidth, trimHeight
+            );
+            return trimmedCanvas.toDataURL();
+        }
+
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadLabel.innerText = "Processing...";
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const tempImage = new Image();
+                tempImage.onload = function() {
+                    imageSrc = trimCanvas(tempImage);
+                    uploadedImage.src = imageSrc;
+                    
+                    uploadedImage.onload = function() {
+                        uploadLabel.innerText = file.name.length > 15 ? file.name.substring(0, 15) + "..." : file.name;
+                        aspectRatio = uploadedImage.width / uploadedImage.height;
+                        
+                        widthInput.value = 15;
+                        heightInput.value = (15 / aspectRatio).toFixed(2);
+                        
+                        offsetX_cm = 0; 
+                        offsetY_cm = 0;
+                        stageScale = null; 
+                        
+                        generatePreview();
+                    }
+                };
+                tempImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        lockBtn.addEventListener('click', () => {
+            isRatioLocked = !isRatioLocked;
+            lockBtn.innerText = isRatioLocked ? "🔒" : "🔓";
+            if (isRatioLocked && widthInput.value && heightInput.value) {
+                aspectRatio = parseFloat(widthInput.value) / parseFloat(heightInput.value);
+            }
+        });
+
+        widthInput.addEventListener('input', () => {
+            if (isRatioLocked && widthInput.value) {
+                heightInput.value = (parseFloat(widthInput.value) / aspectRatio).toFixed(2);
+            }
+            generatePreview();
+        });
+
+        heightInput.addEventListener('input', () => {
+            if (isRatioLocked && heightInput.value) {
+                widthInput.value = (parseFloat(heightInput.value) * aspectRatio).toFixed(2);
+            }
+            generatePreview();
+        });
+
+        function setOrientation(mode) {
+            isPortrait = (mode === 'portrait');
+            document.getElementById('btn-portrait').classList.toggle('active', isPortrait);
+            document.getElementById('btn-landscape').classList.toggle('active', !isPortrait);
+            
+            printStyleBlock.innerHTML = `@media print { @page { size: auto; margin: 0; } @page { size: A4 ${isPortrait ? 'portrait' : 'landscape'}; margin: 0; } }`;
+            
+            if (imageSrc) generatePreview();
+        }
+
+        // Locks the image to the boundary so it doesn't create wasted blank pages
+        function enforceOffsetBounds(targetW, targetH, pageW, pageH) {
+            if (targetW > pageW) {
+                if (offsetX_cm > 0) offsetX_cm = 0;
+                if (offsetX_cm < pageW - targetW) offsetX_cm = pageW - targetW;
+            } else {
+                if (offsetX_cm < 0) offsetX_cm = 0;
+                if (offsetX_cm > pageW - targetW) offsetX_cm = pageW - targetW;
+            }
+
+            if (targetH > pageH) {
+                if (offsetY_cm > 0) offsetY_cm = 0;
+                if (offsetY_cm < pageH - targetH) offsetY_cm = pageH - targetH;
+            } else {
+                if (offsetY_cm < 0) offsetY_cm = 0;
+                if (offsetY_cm > pageH - targetH) offsetY_cm = pageH - targetH;
+            }
+        }
+
+        // Nudge Function
+        function nudgeImage(direction) {
+            if (!imageSrc) return;
+            const nudgeAmount = 0.5; // moves by 0.5 cm
+            
+            if (direction === 'left') offsetX_cm -= nudgeAmount;
+            if (direction === 'right') offsetX_cm += nudgeAmount;
+            if (direction === 'up') offsetY_cm -= nudgeAmount;
+            if (direction === 'down') offsetY_cm += nudgeAmount;
+            
+            generatePreview(); 
+        }
+
+        function generatePreview() {
+            if (!imageSrc) return;
+
+            const targetW = parseFloat(widthInput.value) || 15;
+            const targetH = parseFloat(heightInput.value) || 15;
+            const pageW = isPortrait ? A4_PORTRAIT_W : A4_PORTRAIT_H;
+            const pageH = isPortrait ? A4_PORTRAIT_H : A4_PORTRAIT_W;
+
+            enforceOffsetBounds(targetW, targetH, pageW, pageH);
+
+            printContainer.innerHTML = ''; 
+
+            const rightEdge = Math.max(0, offsetX_cm) + targetW;
+            const bottomEdge = Math.max(0, offsetY_cm) + targetH;
+
+            const cols = Math.max(1, Math.ceil(rightEdge / pageW));
+            const rows = Math.max(1, Math.ceil(bottomEdge / pageH));
+            const totalPages = cols * rows;
+
+            let tipHTML = `<span style="font-size: 13px; font-weight: normal; color: #555;">Drag or use Arrow buttons to nudge. Use Zoom panel to see all pages.</span>`;
+            if (isPortrait && totalPages > 4 && targetH > 59.4 && targetH <= 62) {
+                tipHTML = `<span class="warning-tip">💡 Tip: Reduce height to 59.4cm to fit perfectly on 4 pages!</span>`;
+            } else if (isPortrait && cols > 2 && targetW > 42 && targetW <= 44) {
+                tipHTML = `<span class="warning-tip">💡 Tip: Reduce width to 42.0cm to fit perfectly on 2 columns!</span>`;
+            }
+
+            statsHeader.innerHTML = `Size: ${targetW.toFixed(1)}x${targetH.toFixed(1)}cm &nbsp; | &nbsp; Pages: ${totalPages}<br>${tipHTML}`;
+
+            if (stageScale === null) {
+                const singlePageWidthPx = pageW * PX_PER_CM;
+                const maxPreviewWidth = window.innerWidth - 40; 
+                if (singlePageWidthPx > maxPreviewWidth) {
+                    stageScale = maxPreviewWidth / singlePageWidthPx;
+                } else {
+                    stageScale = 1;
+                }
+                zoomSlider.value = stageScale;
+            }
+
+            const totalWidthPx = cols * pageW * PX_PER_CM + ((cols-1) * 15);
+            const totalHeightPx = rows * pageH * PX_PER_CM + ((rows-1) * 15);
+
+            printContainer.style.width = `${totalWidthPx}px`;
+            printContainer.style.height = `${totalHeightPx}px`;
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'stencil-overlay';
+            overlay.innerHTML = `
+                <div class="handle e" data-dir="e"></div>
+                <div class="handle s" data-dir="s"></div>
+                <div class="handle se" data-dir="se"></div>
+            `;
+            printContainer.appendChild(overlay);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'a4-page';
+                    pageDiv.dataset.r = r;
+                    pageDiv.dataset.c = c;
+                    
+                    pageDiv.style.width = `${pageW * PX_PER_CM}px`;
+                    pageDiv.style.height = `${pageH * PX_PER_CM}px`;
+
+                    pageDiv.style.setProperty('--print-w', `${pageW}cm`);
+                    pageDiv.style.setProperty('--print-h', `${pageH}cm`);
+
+                    const topRuler = document.createElement('div');
+                    topRuler.className = 'page-ruler-top';
+                    for(let i=1; i<=Math.floor(pageW); i++) {
+                        const tick = document.createElement('div');
+                        tick.className = 'tick-x'; tick.style.left = `${i * PX_PER_CM}px`; tick.innerText = i;
+                        topRuler.appendChild(tick);
+                    }
+                    
+                    const leftRuler = document.createElement('div');
+                    leftRuler.className = 'page-ruler-left';
+                    for(let i=1; i<=Math.floor(pageH); i++) {
+                        const tick = document.createElement('div');
+                        tick.className = 'tick-y'; tick.style.top = `${i * PX_PER_CM}px`; tick.innerText = i;
+                        leftRuler.appendChild(tick);
+                    }
+
+                    pageDiv.appendChild(topRuler);
+                    pageDiv.appendChild(leftRuler);
+
+                    const imgEl = document.createElement('img');
+                    imgEl.src = imageSrc;
+                    imgEl.className = 'stencil-img';
+                    
+                    pageDiv.appendChild(imgEl);
+                    printContainer.appendChild(pageDiv);
+                }
+            }
+            
+            applyWorkspaceZoom(); 
+            updateImageTransforms(); 
+        }
+
+        function updateImageTransforms() {
+            const targetW = parseFloat(widthInput.value) || 15;
+            const targetH = parseFloat(heightInput.value) || 15;
+            const pageW = isPortrait ? A4_PORTRAIT_W : A4_PORTRAIT_H;
+            const pageH = isPortrait ? A4_PORTRAIT_H : A4_PORTRAIT_W;
+
+            enforceOffsetBounds(targetW, targetH, pageW, pageH);
+
+            const pages = document.querySelectorAll('.a4-page');
+            pages.forEach(page => {
+                const r = parseInt(page.dataset.r);
+                const c = parseInt(page.dataset.c);
+                const img = page.querySelector('.stencil-img');
+
+                if (img) {
+                    // Screen Preview (Pixels)
+                    img.style.width = `${targetW * PX_PER_CM}px`;
+                    img.style.height = `${targetH * PX_PER_CM}px`;
+                    
+                    const leftOffsetPx = (offsetX_cm - c * pageW) * PX_PER_CM;
+                    const topOffsetPx = (offsetY_cm - r * pageH) * PX_PER_CM;
+                    
+                    img.style.left = `${leftOffsetPx}px`;
+                    img.style.top = `${topOffsetPx}px`;
+
+                    // Print Scaling (Percentages - Bulletproof against iOS Margins)
+                    const imgW_pct = (targetW / pageW) * 100;
+                    const imgH_pct = (targetH / pageH) * 100;
+                    const printOffX_pct = ((offsetX_cm - c * pageW) / pageW) * 100;
+                    const printOffY_pct = ((offsetY_cm - r * pageH) / pageH) * 100;
+
+                    img.style.setProperty('--print-img-w-pct', `${imgW_pct}%`);
+                    img.style.setProperty('--print-img-h-pct', `${imgH_pct}%`);
+                    img.style.setProperty('--print-off-x-pct', `${printOffX_pct}%`);
+                    img.style.setProperty('--print-off-y-pct', `${printOffY_pct}%`);
+                }
+            });
+
+            const overlay = document.getElementById('stencil-overlay');
+            if (overlay) {
+                overlay.style.display = 'block';
+                overlay.style.width = `${targetW * PX_PER_CM}px`;
+                overlay.style.height = `${targetH * PX_PER_CM}px`;
+                
+                const visualLeft = offsetX_cm * PX_PER_CM + (Math.floor(offsetX_cm / pageW) * 15);
+                const visualTop = offsetY_cm * PX_PER_CM + (Math.floor(offsetY_cm / pageH) * 15);
+
+                overlay.style.left = `${visualLeft}px`;
+                overlay.style.top = `${visualTop}px`;
+            }
+        }
+
+        function applyWorkspaceZoom() {
+            if (!imageSrc) return;
+            const targetW = parseFloat(widthInput.value) || 15;
+            const targetH = parseFloat(heightInput.value) || 15;
+            const pageW = isPortrait ? A4_PORTRAIT_W : A4_PORTRAIT_H;
+            const pageH = isPortrait ? A4_PORTRAIT_H : A4_PORTRAIT_W;
+
+            const cols = Math.max(1, Math.ceil((Math.max(0, offsetX_cm) + targetW) / pageW));
+            const rows = Math.max(1, Math.ceil((Math.max(0, offsetY_cm) + targetH) / pageH));
+
+            const totalWidthPx = cols * pageW * PX_PER_CM + ((cols-1) * 15);
+            const totalHeightPx = rows * pageH * PX_PER_CM + ((rows-1) * 15);
+
+            printContainer.style.transform = `scale(${stageScale})`;
+            scaleWrapper.style.width = `${totalWidthPx * stageScale}px`;
+            scaleWrapper.style.height = `${totalHeightPx * stageScale}px`;
+        }
+
+        function adjustZoom(delta) {
+            if (!imageSrc) return;
+            stageScale = Math.max(0.1, Math.min(2.5, stageScale + delta));
+            zoomSlider.value = stageScale;
+            applyWorkspaceZoom();
+        }
+
+        zoomSlider.addEventListener('input', (e) => {
+            if (!imageSrc) return;
+            stageScale = parseFloat(e.target.value);
+            applyWorkspaceZoom();
+        });
+
+        function fitAllPages() {
+            if (!imageSrc) return;
+            const targetW = parseFloat(widthInput.value) || 15;
+            const targetH = parseFloat(heightInput.value) || 15;
+            const pageW = isPortrait ? A4_PORTRAIT_W : A4_PORTRAIT_H;
+            const pageH = isPortrait ? A4_PORTRAIT_H : A4_PORTRAIT_W;
+
+            const cols = Math.max(1, Math.ceil((Math.max(0, offsetX_cm) + targetW) / pageW));
+            const rows = Math.max(1, Math.ceil((Math.max(0, offsetY_cm) + targetH) / pageH));
+
+            const totalWidthPx = cols * pageW * PX_PER_CM + ((cols-1) * 15);
+            const totalHeightPx = rows * pageH * PX_PER_CM + ((rows-1) * 15);
+
+            const availW = window.innerWidth - 40;
+            const availH = window.innerHeight * 0.6; 
+            
+            stageScale = Math.min(1, Math.min(availW / totalWidthPx, availH / totalHeightPx));
+            zoomSlider.value = stageScale;
+            applyWorkspaceZoom();
+        }
+
+        const previewWrapper = document.getElementById('preview-wrapper');
+        const bgPointers = new Map();
+        let bgGestureStart = null;
+
+        previewWrapper.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('#stencil-overlay') || e.target.closest('.handle') || e.target.closest('.zoom-panel')) return;
+            bgPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            
+            if (bgPointers.size === 2) {
+                const pts = Array.from(bgPointers.values());
+                bgGestureStart = { scale: stageScale, d: dist(pts[0], pts[1]) };
+            }
+        });
+
+        previewWrapper.addEventListener('pointermove', (e) => {
+            if (!bgPointers.has(e.pointerId)) return;
+            bgPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+            if (bgPointers.size === 2 && bgGestureStart) {
+                e.preventDefault(); 
+                const pts = Array.from(bgPointers.values());
+                const scaleMulti = dist(pts[0], pts[1]) / bgGestureStart.d;
+                
+                stageScale = Math.max(0.1, Math.min(2.5, bgGestureStart.scale * scaleMulti));
+                zoomSlider.value = stageScale;
+                applyWorkspaceZoom();
+            }
+        });
+
+        function endBgPointer(e) {
+            bgPointers.delete(e.pointerId);
+            if (bgPointers.size < 2) bgGestureStart = null;
+        }
+        previewWrapper.addEventListener('pointerup', endBgPointer);
+        previewWrapper.addEventListener('pointercancel', endBgPointer);
+
+        function dist(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+
+        printContainer.addEventListener('pointerdown', (e) => {
+            if (!imageSrc) return;
+            
+            const handle = e.target.closest('.handle');
+            const overlay = e.target.closest('#stencil-overlay');
+            
+            if (!handle && !overlay) { return; }
+
+            if (handle) {
+                activeHandle = handle.dataset.dir;
+            } else {
+                activeHandle = null;
+            }
+
+            e.preventDefault(); 
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            beginImageGesture();
+            try { printContainer.setPointerCapture(e.pointerId); } catch(err){}
+            e.stopPropagation(); 
+        });
+
+        printContainer.addEventListener('pointermove', (e) => {
+            if (!pointers.has(e.pointerId)) return;
+            e.preventDefault();
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            updateImageGesture();
+        });
+
+        function endImagePointer(e) {
+            if (!pointers.has(e.pointerId)) return;
+            pointers.delete(e.pointerId);
+            try { printContainer.releasePointerCapture(e.pointerId); } catch(err){}
+            
+            if (activeHandle) {
+                const w = parseFloat(widthInput.value);
+                const h = parseFloat(heightInput.value);
+                if (w && h) aspectRatio = w / h;
+            }
+
+            activeHandle = null;
+            beginImageGesture();
+            
+            if (pointers.size === 0) {
+                generatePreview(); 
+            }
+        }
+        
+        printContainer.addEventListener('pointerup', endImagePointer);
+        printContainer.addEventListener('pointercancel', endImagePointer);
+
+        function beginImageGesture() {
+            if (!imageSrc || pointers.size === 0) {
+                gestureStart = null; return;
+            }
+            const pts = Array.from(pointers.values());
+            gestureStart = {
+                wCM: parseFloat(widthInput.value) || 15,
+                hCM: parseFloat(heightInput.value) || 15,
+                xCM: offsetX_cm,
+                yCM: offsetY_cm,
+                p1: pts[0],
+                p2: pts[1] || null,
+                d: pts[1] ? dist(pts[0], pts[1]) : null
+            };
+        }
+
+        function updateImageGesture() {
+            if (!gestureStart || !imageSrc) return;
+            const pts = Array.from(pointers.values());
+
+            if (activeHandle) {
+                const pt = pts[0];
+                const dx_cm = (pt.x - gestureStart.p1.x) / stageScale / PX_PER_CM;
+                const dy_cm = (pt.y - gestureStart.p1.y) / stageScale / PX_PER_CM;
+
+                let newW = gestureStart.wCM;
+                let newH = gestureStart.hCM;
+
+                if (activeHandle === 'e') {
+                    newW = Math.max(1, gestureStart.wCM + dx_cm);
+                } else if (activeHandle === 's') {
+                    newH = Math.max(1, gestureStart.hCM + dy_cm);
+                } else if (activeHandle === 'se') {
+                    newW = Math.max(1, gestureStart.wCM + dx_cm);
+                    if (isRatioLocked) {
+                        newH = newW / aspectRatio;
+                    } else {
+                        newH = Math.max(1, gestureStart.hCM + dy_cm);
+                    }
+                }
+
+                widthInput.value = newW.toFixed(2);
+                heightInput.value = newH.toFixed(2);
+            } 
+            else {
+                if (pts.length === 1) {
+                    const dx_px = (pts[0].x - gestureStart.p1.x) / stageScale;
+                    const dy_px = (pts[0].y - gestureStart.p1.y) / stageScale;
+                    offsetX_cm = gestureStart.xCM + (dx_px / PX_PER_CM);
+                    offsetY_cm = gestureStart.yCM + (dy_px / PX_PER_CM);
+                } else if (pts.length === 2 && gestureStart.p2) {
+                    const scaleMulti = dist(pts[0], pts[1]) / gestureStart.d;
+                    let newW = gestureStart.wCM * scaleMulti;
+                    let newH = gestureStart.hCM * scaleMulti;
+                    
+                    newH = newW / aspectRatio; 
+
+                    widthInput.value = newW.toFixed(2);
+                    heightInput.value = newH.toFixed(2);
+                }
+            }
+
+            updateImageTransforms();
+        }
+
+        function executePrint() {
+            if (!imageSrc) {
+                alert("Upload an image and generate the preview first.");
+                return;
+            }
+            window.print();
+        }
+    </script>
+</body>
+</html>
